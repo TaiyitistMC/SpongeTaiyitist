@@ -1,8 +1,8 @@
 {
 	"schemaVersion": 1,
-	"id": "spongetaiyitist",
+	"id": "sponge-taiyitist",
 	"version": "${version}",
-	"name": "SpongeTaiyitist",
+	"name": "Sponge Taiyitist",
 	"description": "This is an example description! Tell everyone what your mod is about!",
 	"authors": [
 		"Me!"
@@ -17,17 +17,11 @@
 	"entrypoints": {
 		"main": [
 			"com.taiyitistmc.sponge.SpongeTaiyitist"
-		],
-		"client": [
-			"com.taiyitistmc.sponge.SpongeTaiyitistClient"
 		]
 	},
+	"accessWidener": "sponge-taiyitist.accesswidener",
 	"mixins": [
-		"spongetaiyitist.mixins.json",
-		{
-			"config": "spongetaiyitist.client.mixins.json",
-			"environment": "client"
-		}
+		"spongetaiyitist.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.16.14",

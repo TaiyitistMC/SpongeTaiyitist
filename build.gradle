@@ -11,18 +11,14 @@ base {
 }
 
 repositories {
-
+	maven {
+		name = 'sponge-repo'
+		url = 'https://repo.spongepowered.org/repository/maven-public/'
+	}
 }
 
 loom {
-	splitEnvironmentSourceSets()
-
-	mods {
-		"spongetaiyitist" {
-			sourceSet sourceSets.main
-		}
-	}
-
+	accessWidenerPath = file('src/main/resources/sponge-taiyitist.accesswidener')
 }
 
 dependencies {
@@ -33,7 +29,7 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	
+	modImplementation(include("org.spongepowered:spongeapi:12.0.0"))
 }
 
 processResources {
@@ -83,3 +79,4 @@ publishing {
 		// retrieving dependencies.
 	}
 }
+
