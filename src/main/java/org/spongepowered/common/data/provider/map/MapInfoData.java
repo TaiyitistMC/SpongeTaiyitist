@@ -1,0 +1,109 @@
+/*
+ * This file is part of Sponge, licensed under the MIT License (MIT).
+ *
+ * Copyright (c) SpongePowered <https://www.spongepowered.org>
+ * Copyright (c) contributors
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package org.spongepowered.common.data.provider.map;
+
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+import org.apache.logging.log4j.LogManager;
+import org.spongepowered.api.ResourceKey;
+import org.spongepowered.api.data.Keys;
+import org.spongepowered.api.map.MapInfo;
+import org.spongepowered.common.accessor.world.level.saveddata.maps.MapItemSavedDataAccessor;
+import org.spongepowered.common.bridge.world.storage.MapItemSavedDataBridge;
+import org.spongepowered.common.data.provider.DataProviderRegistrator;
+import org.spongepowered.common.map.canvas.SpongeMapByteCanvas;
+import org.spongepowered.common.map.canvas.SpongeMapCanvas;
+import org.spongepowered.math.vector.Vector2i;
+
+public final class MapInfoData {
+
+    private MapInfoData() {
+    }
+
+    // @formatter:off
+	public static void register(final DataProviderRegistrator registrator) {
+		// todo: does this want to become immutable?
+		registrator.asMutable(MapItemSavedData.class)
+				.create(Keys.MAP_CANVAS)
+					.get(mapData -> new SpongeMapByteCanvas(mapData.colors))
+					.set((mapData, mapCanvas) -> {
+						((SpongeMapCanvas)mapCanvas).applyToMapData(mapData);
+						((MapItemSavedDataBridge)mapData).bridge$updateWholeMap();
+					})
+				.create(Keys.MAP_LOCATION)
+					.get(mapData -> Vector2i.from(mapData.centerX, mapData.centerZ))
+					.set((mapData, vector2i) -> {
+						((MapItemSavedDataBridge) mapData).bridge$setOrigin(vector2i.x(), vector2i.y(), mapData.scale);
+						mapData.setDirty();
+					})
+				.create(Keys.MAP_LOCKED)
+					.get(mapData -> mapData.locked)
+					.set((mapData, locked) -> {
+						((MapItemSavedDataAccessor) mapData).accessor$locked(locked);
+						mapData.setDirty();
+					})
+				.create(Keys.MAP_SCALE)
+					.get(mapData -> (int) mapData.scale)
+					.set((mapData, scale) -> {
+						((MapItemSavedDataAccessor) mapData).accessor$scale(scale.byteValue());
+						((MapItemSavedDataBridge) mapData).bridge$setOrigin(mapData.centerX, mapData.centerZ, mapData.scale);
+						mapData.setDirty();
+					})
+				.create(Keys.MAP_TRACKS_PLAYERS)
+					.get(mapData -> ((MapItemSavedDataAccessor) mapData).accessor$trackingPosition())
+					.set((mapData, tracksPlayers) -> {
+						((MapItemSavedDataAccessor) mapData).accessor$trackingPosition(tracksPlayers);
+						mapData.setDirty();
+					})
+				.create(Keys.MAP_UNLIMITED_TRACKING)
+					.get(mapData -> ((MapItemSavedDataAccessor) mapData).accessor$unlimitedTracking())
+					.set((mapData, unlimitedTracking) -> {
+						((MapItemSavedDataAccessor) mapData).accessor$unlimitedTracking(unlimitedTracking);
+						mapData.setDirty();
+					})
+				.create(Keys.MAP_WORLD)
+					.get(mapData -> {
+						final int id = ((MapItemSavedDataBridge)mapData).bridge$getMapId();
+						if (mapData.dimension == null) {
+							LogManager.getLogger().error("Map with id: {}, uuid: {} has an null world. This will probably cause more errors later/on save", id, ((MapInfo)mapData).uniqueId());
+							return null;
+						}
+
+						return (ResourceKey) (Object) mapData.dimension.location();
+					})
+					.set((mapData, key) -> {
+						((MapItemSavedDataAccessor) mapData).accessor$dimension(net.minecraft.resources.ResourceKey.create(Registries.DIMENSION, (ResourceLocation) (Object) key));
+						mapData.setDirty();
+					})
+			.asMutable(MapItemSavedDataBridge.class)
+					.create(Keys.MAP_DECORATIONS)
+					.get(MapItemSavedDataBridge::bridge$getDecorations)
+					.set(MapItemSavedDataBridge::bridge$setDecorations);
+
+		registrator.spongeDataStore(ResourceKey.sponge("map-data"), MapInfo.class, Keys.MAP_DECORATIONS);
+	}
+	// @formatter:on
+}
